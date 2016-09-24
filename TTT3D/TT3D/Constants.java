@@ -28,8 +28,8 @@ public class Constants {
    */
   public static final String[] UNICODE_TEXT = {
       "― ", // CELL_EMPTY
-      "✗ ", // CELL_X
-      "𝑂 ", // CELL_O
+      "x ", // CELL_X
+      "o ", // CELL_O
       "  ", // CELL_INVALID
   };
 
@@ -40,8 +40,8 @@ public class Constants {
   public
   static final String[] COLOR_TEXT = {
       "\u001B[30m― \u001B[0m", // CELL_EMPTY
-      "✗ ", // CELL_X
-      "𝑂 ", // CELL_O
+      "x ", // CELL_X
+      "o ", // CELL_O
       "  ", // CELL_INVALID
   };
 

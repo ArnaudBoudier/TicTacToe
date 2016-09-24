@@ -1,3 +1,5 @@
+
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,7 +15,7 @@ import java.util.Vector;
  *      is, send a starting board without moving for the other client to move
  *      first.
  */
-public class Main {
+public class Main2 {
     public static void main(String[] args) throws IOException {
       /* Parse parameters */
       boolean init = false;

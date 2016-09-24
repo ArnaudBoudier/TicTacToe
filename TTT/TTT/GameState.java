@@ -1,3 +1,4 @@
+package TTT;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -427,11 +428,11 @@ public class GameState {
       // Note: this code is intended for BOARD_SIZE = 4
       final String[] cell_text = Constants.COLOR_TEXT;
       final String board_top    = (cell_text == Constants.SIMPLE_TEXT) ? "     -----------------\n"
-              : "    ╭─────────╮\n";
+              : "    ---------------\n";
       final String board_bottom = (cell_text == Constants.SIMPLE_TEXT) ? "     -----------------\n"
-              : "    ╰─────────╯\n";
-      final String board_left   = (cell_text == Constants.SIMPLE_TEXT) ? "| " : "│ ";
-      final String board_right  = (cell_text == Constants.SIMPLE_TEXT) ? "|" : "│";
+              : "    ---------------\n";
+      final String board_left   = (cell_text == Constants.SIMPLE_TEXT) ? "| " : " | ";
+      final String board_right  = (cell_text == Constants.SIMPLE_TEXT) ? "|" : " |";
 
       boolean is_winner = (isEOG() && ((player == Constants.CELL_X && isXWin()) || (player == Constants.CELL_O && isOWin())));
       boolean is_my_turn = (nextPlayer == player);
