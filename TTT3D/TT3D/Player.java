@@ -13,7 +13,7 @@ public class Player {
      */
     int idPlayer;
     HashMap<Integer, Double> valuesAlphaBeta;
-    
+
     public GameState play(final GameState gameState, final Deadline deadline) {
         valuesAlphaBeta = new HashMap<>();
         idPlayer = gameState.getNextPlayer() == 1 ? 2 : 1;
@@ -32,16 +32,19 @@ public class Player {
         boolean myTurnToPlay = true;
         double v = Integer.MIN_VALUE;
         System.err.println("Searching BEST MOVE");
-        
+
         int size = nextStates.size();
-        
+        if (size <= 20) {
+            depth = Integer.MAX_VALUE;
+        }
+
         for (GameState newGameState : nextStates) {
-            
+
             if (deadline.timeUntil() < 50) {
                 System.err.println("No more time exit");
                 break;
             }
-            
+
             double alphaBetaVal = alphaBeta(newGameState, depth, alpha, beta, !myTurnToPlay, deadline);
             //System.err.println("look for move " + newGameState.getMove() + " : " + alphaBetaVal);
             if (alphaBetaVal > v) {
@@ -49,21 +52,21 @@ public class Player {
                 v = alphaBetaVal;
                 bestIndex = index;
             }
-            
+
             if (v > alpha) {
                 alpha = v;
             }
-            
+
             if (beta <= alpha) {
                 break;
             }
-            
+
             index++;
         }
-        System.err.println("Valeur  " + gama2(nextStates.get(bestIndex), depth));
+
         return nextStates.get(bestIndex);
     }
-    
+
     public int gama(GameState gameState, int depth) {
         if (gameState.isOWin()) {
             if (idPlayer == Constants.CELL_O) {
@@ -100,8 +103,8 @@ public class Player {
         }
         return 0;
     }
-    
-    public double gama2(GameState gameState, int depth) {
+
+    public double gama2(GameState gameState) {
         if (gameState.isOWin()) {
             if (idPlayer == Constants.CELL_O) {
                 return Integer.MAX_VALUE;
@@ -117,401 +120,473 @@ public class Player {
         } else {
             int idOpponent = idPlayer == 1 ? 2 : 1;
             // Fist we consider the 48 orthogonal rows
-            double globalRes = 0;
-            double[][] row3dValues = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
+            double globalResMe = 0;
+            double globalResOppo = 0;
+            double[][] row3dValuesMe = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
+            double[][] row3dValuesOppo = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
             for (int layer = 0; layer < 4; layer++) {
-                double rowValue = 1;
-                double[] colValues = {1, 1, 1, 1};
+                double rowValueMe = 1;
+                double rowValueOppo = 1;
+                double[] colValuesMe = {1, 1, 1, 1};
+                double[] colValuesOppo = {1, 1, 1, 1};
                 for (int row = 0; row < 4; row++) {
-                    rowValue = 1;
+                    rowValueMe = 1;
+                    rowValueOppo = 1;
                     for (int col = 0; col < 4; col++) {
                         if (gameState.at(row, col, layer) == idPlayer) {
-                            rowValue *= 5;
-                            colValues[col] *= 5;
-                            row3dValues[row][col] *= 5;
+                            rowValueMe *= 5;
+                            rowValueOppo *= 0;
+                            colValuesMe[col] *= 5;
+                            colValuesOppo[col] *= 0;
+                            row3dValuesMe[row][col] *= 5;
+                            row3dValuesOppo[row][col] *= 0;
                         } else if (gameState.at(row, col, layer) == idOpponent) {
-                            rowValue = 0;
-                            colValues[col] = 0;
-                            row3dValues[row][col] = 0;
+                            rowValueOppo *= 5;
+                            rowValueMe *= 0;
+                            colValuesOppo[col] *= 5;
+                            colValuesMe[col] *= 0;
+                            row3dValuesOppo[row][col] *= 5;
+                            row3dValuesMe[row][col] *= 0;
                         }
                     }
-                    globalRes += rowValue;
+                    globalResMe += rowValueMe;
+                    globalResOppo += rowValueOppo;
                 }
-                globalRes += colValues[0] + colValues[1] + colValues[2] + colValues[3];
+                globalResMe += colValuesMe[0] + colValuesMe[1] + colValuesMe[2] + colValuesMe[3];
+                globalResOppo += colValuesOppo[0] + colValuesOppo[1] + colValuesOppo[2] + colValuesOppo[3];
             }
-            
+
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    globalRes += row3dValues[i][j];
+                    globalResMe += row3dValuesMe[i][j];
+                    globalResOppo += row3dValuesOppo[i][j];
                 }
             }
 
-            // Then we consider the 28 diagonal rows
-            double[] botToTopDiags = {1, 1, 1, 1};
-            double[] TopToBotDiags = {1, 1, 1, 1};
-            double[][] horizotalDiags = {{1, 1}, {1, 1}, {1, 1}, {1, 1}};
-            
-            double topLeftToBotRightDiag = 1;
-            double topRightToBotLeftDiag = 1;
-            double botLeftToTopRightDiag = 1;
-            double botRightToTopLeftDiag = 1;
-            
+            // Then we consider the 24 diagonal rows
+            double[] botToTopDiagsMe = {1, 1, 1, 1};
+            double[] TopToBotDiagsMe = {1, 1, 1, 1};
+            double[][] horizotalDiagsMe = {{1, 1}, {1, 1}, {1, 1}, {1, 1}};
+
+            double topLeftToBotRightDiagMe = 1;
+            double topRightToBotLeftDiagMe = 1;
+            double botLeftToTopRightDiagMe = 1;
+            double botRightToTopLeftDiagMe = 1;
+
+            double[] botToTopDiagsOppo = {1, 1, 1, 1};
+            double[] TopToBotDiagsOppo = {1, 1, 1, 1};
+            double[][] horizotalDiagsOppo = {{1, 1}, {1, 1}, {1, 1}, {1, 1}};
+
+            double topLeftToBotRightDiagOppo = 1;
+            double topRightToBotLeftDiagOppo = 1;
+            double botLeftToTopRightDiagOppo = 1;
+            double botRightToTopLeftDiagOppo = 1;
+
             for (int layer = 0; layer < 4; layer++) {
-                double lToRDiag = 1;
-                double rToLDiag = 1;
+                double rtoLDiag = 1;
+                double ltoRDiag = 1;
+                double rtoLDiagOppo = 1;
+                double ltoRDiagOppo = 1;
                 for (int row = 0; row < 4; row++) {
-                    
+
                     for (int col = 0; col < 4; col++) {
                         if (gameState.at(row, col, layer) == idPlayer) {
                             // First Plan Diagonals
                             if (col == row) {
-                                lToRDiag *= 5;
+                                rtoLDiag *= 5;
+                                rtoLDiagOppo *= 0;
                             } else if (row == 0 && col == 3) {
-                                rToLDiag *= 5;
+                                ltoRDiag *= 5;
+                                ltoRDiagOppo *= 0;
                             } else if (row == 1 && col == 2) {
-                                rToLDiag *= 5;
+                                ltoRDiag *= 5;
+                                ltoRDiagOppo *= 0;
                             } else if (row == 2 && col == 1) {
-                                rToLDiag *= 5;
+                                ltoRDiag *= 5;
+                                ltoRDiagOppo *= 0;
                             } else if (row == 3 && col == 0) {
-                                rToLDiag *= 5;
+                                ltoRDiag *= 5;
+                                ltoRDiagOppo *= 0;
                             }
 
                             //3D plan Diagonals
                             switch (layer) {
                                 case 0:
                                     if (row == 0) {
-                                        TopToBotDiags[col] *= 5;
-                                        
+                                        TopToBotDiagsMe[col] *= 5;
+                                        TopToBotDiagsOppo[col] *= 0;
+
                                         if (col == 0) {
-                                            topLeftToBotRightDiag *= 5;
+                                            topLeftToBotRightDiagMe *= 5;
+                                            topLeftToBotRightDiagOppo *= 0;
                                         } else if (col == 3) {
-                                            topRightToBotLeftDiag *= 5;
+                                            topRightToBotLeftDiagMe *= 5;
+                                            topRightToBotLeftDiagOppo *= 0;
                                         }
-                                        
+
                                     } else if (row == 3) {
-                                        botToTopDiags[col] *= 5;
-                                        
+                                        botToTopDiagsMe[col] *= 5;
+                                        botToTopDiagsOppo[col] *= 0;
+
                                         if (col == 0) {
-                                            botLeftToTopRightDiag *= 5;
+                                            botLeftToTopRightDiagMe *= 5;
+                                            botLeftToTopRightDiagOppo *= 0;
                                         } else if (col == 3) {
-                                            botRightToTopLeftDiag *= 5;
+                                            botRightToTopLeftDiagMe *= 5;
+                                            botRightToTopLeftDiagOppo *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 0) {
-                                        horizotalDiags[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 5;
+                                        horizotalDiagsOppo[row][0] *= 0;
                                     } else if (col == 3) {
-                                        horizotalDiags[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 5;
+                                        horizotalDiagsOppo[row][1] *= 0;
                                     }
-                                    
+
                                     break;
                                 case 1:
                                     if (row == 1) {
-                                        TopToBotDiags[col] *= 5;
-                                        
+                                        TopToBotDiagsMe[col] *= 5;
+                                        TopToBotDiagsOppo[col] *= 0;
+
                                         if (col == 1) {
-                                            topLeftToBotRightDiag *= 5;
+                                            topLeftToBotRightDiagMe *= 5;
+                                            topLeftToBotRightDiagOppo *= 0;
                                         } else if (col == 2) {
-                                            topRightToBotLeftDiag *= 5;
+                                            topRightToBotLeftDiagMe *= 5;
+                                            topRightToBotLeftDiagOppo *= 0;
                                         }
-                                        
+
                                     } else if (row == 2) {
-                                        botToTopDiags[col] *= 5;
-                                        
+                                        botToTopDiagsMe[col] *= 5;
+                                        botToTopDiagsOppo[col] *= 0;
+
                                         if (col == 1) {
-                                            botLeftToTopRightDiag *= 5;
+                                            botLeftToTopRightDiagMe *= 5;
+                                            botLeftToTopRightDiagOppo *= 0;
                                         } else if (col == 2) {
-                                            botRightToTopLeftDiag *= 5;
+                                            botRightToTopLeftDiagMe *= 5;
+                                            botRightToTopLeftDiagOppo *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 1) {
-                                        horizotalDiags[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 5;
+                                        horizotalDiagsOppo[row][0] *= 0;
                                     } else if (col == 2) {
-                                        horizotalDiags[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 5;
+                                        horizotalDiagsOppo[row][1] *= 0;
                                     }
                                     break;
                                 case 2:
                                     if (row == 1) {
-                                        botToTopDiags[col] *= 5;
-                                        
+                                        botToTopDiagsMe[col] *= 5;
+                                        botToTopDiagsOppo[col] *= 0;
+
                                         if (col == 1) {
-                                            botRightToTopLeftDiag *= 5;
+                                            botRightToTopLeftDiagMe *= 5;
+                                            botRightToTopLeftDiagOppo *= 0;
                                         } else if (col == 2) {
-                                            botLeftToTopRightDiag *= 5;
+                                            botLeftToTopRightDiagMe *= 5;
+                                            botLeftToTopRightDiagOppo *= 0;
                                         }
                                     } else if (row == 2) {
-                                        TopToBotDiags[col] *= 5;
+                                        TopToBotDiagsMe[col] *= 5;
+                                        TopToBotDiagsOppo[col] *= 0;
                                         if (col == 1) {
-                                            topRightToBotLeftDiag *= 5;
+                                            topRightToBotLeftDiagMe *= 5;
+                                            topRightToBotLeftDiagOppo *= 0;
                                         } else if (col == 2) {
-                                            topLeftToBotRightDiag *= 5;
+                                            topLeftToBotRightDiagMe *= 5;
+                                            topLeftToBotRightDiagOppo *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 1) {
-                                        horizotalDiags[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 5;
+                                        horizotalDiagsOppo[row][1] *= 0;
                                     } else if (col == 2) {
-                                        horizotalDiags[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 5;
+                                        horizotalDiagsOppo[row][0] *= 0;
                                     }
                                     break;
                                 case 3:
                                     if (row == 0) {
-                                        botToTopDiags[col] *= 5;
-                                        
+                                        botToTopDiagsMe[col] *= 5;
+                                        botToTopDiagsOppo[col] *= 0;
+
                                         if (col == 0) {
-                                            botRightToTopLeftDiag *= 5;
+                                            botRightToTopLeftDiagMe *= 5;
+                                            botRightToTopLeftDiagOppo *= 0;
                                         } else if (col == 3) {
-                                            botLeftToTopRightDiag *= 5;
+                                            botLeftToTopRightDiagMe *= 5;
+                                            botLeftToTopRightDiagOppo *= 0;
                                         }
-                                        
+
                                     } else if (row == 3) {
-                                        TopToBotDiags[col] *= 5;
-                                        
+                                        TopToBotDiagsMe[col] *= 5;
+                                        TopToBotDiagsOppo[col] *= 0;
+
                                         if (col == 0) {
-                                            topRightToBotLeftDiag *= 5;
+                                            topRightToBotLeftDiagMe *= 5;
+                                            topRightToBotLeftDiagOppo *= 0;
                                         } else if (col == 3) {
-                                            topLeftToBotRightDiag *= 5;
+                                            topLeftToBotRightDiagMe *= 5;
+                                            topLeftToBotRightDiagOppo *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 0) {
-                                        horizotalDiags[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 5;
+                                        horizotalDiagsOppo[row][1] *= 0;
                                     } else if (col == 3) {
-                                        horizotalDiags[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 5;
+                                        horizotalDiagsOppo[row][0] *= 0;
                                     }
                                     break;
                             }
-                            
+
                         } else if (gameState.at(row, col, layer) == idOpponent) {
-                            
+
+                            // First Plan Diagonals
                             if (col == row) {
-                                lToRDiag = 0;
+                                rtoLDiagOppo *= 5;
+                                rtoLDiag *= 0;
                             } else if (row == 0 && col == 3) {
-                                rToLDiag = 0;
+                                ltoRDiagOppo *= 5;
+                                ltoRDiag *= 0;
                             } else if (row == 1 && col == 2) {
-                                rToLDiag = 0;
+                                ltoRDiagOppo *= 5;
+                                ltoRDiag *= 0;
                             } else if (row == 2 && col == 1) {
-                                rToLDiag = 0;
+                                ltoRDiagOppo *= 5;
+                                ltoRDiag *= 0;
                             } else if (row == 3 && col == 0) {
-                                rToLDiag = 0;
+                                ltoRDiagOppo *= 5;
+                                ltoRDiag *= 0;
                             }
 
                             //3D plan Diagonals
                             switch (layer) {
                                 case 0:
                                     if (row == 0) {
-                                        TopToBotDiags[col] = 0;
-                                        
+                                        TopToBotDiagsOppo[col] *= 5;
+                                        TopToBotDiagsMe[col] *= 0;
+
                                         if (col == 0) {
-                                            topLeftToBotRightDiag = 0;
+                                            topLeftToBotRightDiagOppo *= 5;
+                                            topLeftToBotRightDiagMe *= 0;
                                         } else if (col == 3) {
-                                            topRightToBotLeftDiag = 0;
+                                            topRightToBotLeftDiagOppo *= 5;
+                                            topRightToBotLeftDiagMe *= 0;
                                         }
-                                        
+
                                     } else if (row == 3) {
-                                        botToTopDiags[col] = 0;
-                                        
+                                        botToTopDiagsOppo[col] *= 5;
+                                        botToTopDiagsMe[col] *= 0;
+
                                         if (col == 0) {
-                                            botLeftToTopRightDiag = 0;
+                                            botLeftToTopRightDiagOppo *= 5;
+                                            botLeftToTopRightDiagMe *= 0;
                                         } else if (col == 3) {
-                                            botRightToTopLeftDiag = 0;
+                                            botRightToTopLeftDiagOppo *= 5;
+                                            botRightToTopLeftDiagMe *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 0) {
-                                        horizotalDiags[row][0] = 0;
+                                        horizotalDiagsOppo[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 0;
                                     } else if (col == 3) {
-                                        horizotalDiags[row][1] = 0;
+                                        horizotalDiagsOppo[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 0;
                                     }
-                                    
+
                                     break;
                                 case 1:
                                     if (row == 1) {
-                                        TopToBotDiags[col] = 0;
-                                        
+                                        TopToBotDiagsOppo[col] *= 5;
+                                        TopToBotDiagsMe[col] *= 0;
+
                                         if (col == 1) {
-                                            topLeftToBotRightDiag = 0;
+                                            topLeftToBotRightDiagOppo *= 5;
+                                            topLeftToBotRightDiagMe *= 0;
                                         } else if (col == 2) {
-                                            topRightToBotLeftDiag = 0;
+                                            topRightToBotLeftDiagOppo *= 5;
+                                            topRightToBotLeftDiagMe *= 0;
                                         }
-                                        
+
                                     } else if (row == 2) {
-                                        botToTopDiags[col] = 0;
-                                        
+                                        botToTopDiagsOppo[col] *= 5;
+                                        botToTopDiagsMe[col] *= 0;
+
                                         if (col == 1) {
-                                            botLeftToTopRightDiag = 0;
+                                            botLeftToTopRightDiagOppo *= 5;
+                                            botLeftToTopRightDiagMe *= 0;
                                         } else if (col == 2) {
-                                            botRightToTopLeftDiag = 0;
+                                            botRightToTopLeftDiagOppo *= 5;
+                                            botRightToTopLeftDiagMe *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 1) {
-                                        horizotalDiags[row][0] = 0;
+                                        horizotalDiagsOppo[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 0;
                                     } else if (col == 2) {
-                                        horizotalDiags[row][1] = 0;
+                                        horizotalDiagsOppo[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 0;
                                     }
                                     break;
                                 case 2:
                                     if (row == 1) {
-                                        botToTopDiags[col] = 0;
-                                        
+                                        botToTopDiagsOppo[col] *= 5;
+                                        botToTopDiagsMe[col] *= 0;
+
                                         if (col == 1) {
-                                            botRightToTopLeftDiag = 0;
+                                            botRightToTopLeftDiagOppo *= 5;
+                                            botRightToTopLeftDiagMe *= 0;
                                         } else if (col == 2) {
-                                            botLeftToTopRightDiag = 0;
+                                            botLeftToTopRightDiagOppo *= 5;
+                                            botLeftToTopRightDiagMe *= 0;
                                         }
                                     } else if (row == 2) {
-                                        TopToBotDiags[col] = 0;
+                                        TopToBotDiagsOppo[col] *= 5;
+                                        TopToBotDiagsMe[col] *= 0;
                                         if (col == 1) {
-                                            topRightToBotLeftDiag = 0;
+                                            topRightToBotLeftDiagOppo *= 5;
+                                            topRightToBotLeftDiagMe *= 0;
                                         } else if (col == 2) {
-                                            topLeftToBotRightDiag = 0;
+                                            topLeftToBotRightDiagOppo *= 5;
+                                            topLeftToBotRightDiagMe *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 1) {
-                                        horizotalDiags[row][1] = 0;
+                                        horizotalDiagsOppo[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 0;
                                     } else if (col == 2) {
-                                        horizotalDiags[row][0] = 0;
+                                        horizotalDiagsOppo[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 0;
                                     }
                                     break;
                                 case 3:
                                     if (row == 0) {
-                                        botToTopDiags[col] = 0;
-                                        
+                                        botToTopDiagsOppo[col] *= 5;
+                                        botToTopDiagsMe[col] *= 0;
+
                                         if (col == 0) {
-                                            botRightToTopLeftDiag = 0;
+                                            botRightToTopLeftDiagOppo *= 5;
+                                            botRightToTopLeftDiagMe *= 0;
                                         } else if (col == 3) {
-                                            botLeftToTopRightDiag = 0;
+                                            botLeftToTopRightDiagOppo *= 5;
+                                            botLeftToTopRightDiagMe *= 0;
                                         }
-                                        
+
                                     } else if (row == 3) {
-                                        TopToBotDiags[col] = 0;
-                                        
+                                        TopToBotDiagsOppo[col] *= 5;
+                                        TopToBotDiagsMe[col] *= 0;
+
                                         if (col == 0) {
-                                            topRightToBotLeftDiag = 0;
+                                            topRightToBotLeftDiagOppo *= 5;
+                                            topRightToBotLeftDiagMe *= 0;
                                         } else if (col == 3) {
-                                            topLeftToBotRightDiag = 0;
+                                            topLeftToBotRightDiagOppo *= 5;
+                                            topLeftToBotRightDiagMe *= 0;
                                         }
                                     }
-                                    
+
                                     if (col == 0) {
-                                        horizotalDiags[row][1] = 0;
+                                        horizotalDiagsOppo[row][1] *= 5;
+                                        horizotalDiagsMe[row][1] *= 0;
                                     } else if (col == 3) {
-                                        horizotalDiags[row][0] = 0;
+                                        horizotalDiagsOppo[row][0] *= 5;
+                                        horizotalDiagsMe[row][0] *= 0;
                                     }
                                     break;
                             }
-                            
                         }
                     }
+
                 }
-                globalRes += lToRDiag + rToLDiag;
+
+                globalResMe += rtoLDiag + ltoRDiag;
+                globalResOppo += rtoLDiagOppo + ltoRDiagOppo;
             }
             for (int i = 0; i < 4; i++) {
-                globalRes += botToTopDiags[i] + TopToBotDiags[i];
+                globalResMe += botToTopDiagsMe[i] + TopToBotDiagsMe[i];
+                globalResOppo += botToTopDiagsOppo[i] + TopToBotDiagsOppo[i];
             }
-            
+
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 2; j++) {
-                    globalRes += horizotalDiags[i][j];
+                    globalResMe += horizotalDiagsMe[i][j];
+                    globalResOppo += horizotalDiagsOppo[i][j];
                 }
             }
-            globalRes += topLeftToBotRightDiag + topRightToBotLeftDiag + botLeftToTopRightDiag + botRightToTopLeftDiag;
-            return globalRes;
+            globalResMe += topLeftToBotRightDiagMe + topRightToBotLeftDiagMe + botLeftToTopRightDiagMe + botRightToTopLeftDiagMe;
+            globalResOppo += topLeftToBotRightDiagOppo + topRightToBotLeftDiagOppo + botLeftToTopRightDiagOppo + botRightToTopLeftDiagOppo;
+
+            return globalResMe - globalResOppo;
         }
         return 0;
     }
-    
+
     public double alphaBeta(GameState gameState, int depth, double alpha, double beta, boolean myTurnToPlay, Deadline deadline) {
         depth--;
         Vector<GameState> nextStates = new Vector<GameState>();
         gameState.findPossibleMoves(nextStates);
-        
+
         if (nextStates.isEmpty() || gameState.isEOG() || depth == 0 || deadline.timeUntil() < 1000) {
-            return gama2(gameState, depth);
+            return gama2(gameState);
         }
         double v;
-        
+
         if (myTurnToPlay) {
             v = Integer.MIN_VALUE;
 
-            // Ordering moves
-            HashMap<Integer, ArrayList<GameState>> cache = new HashMap<>();
             for (GameState newGameState : nextStates) {
-                int val = gama(newGameState, depth);
-                if (cache.get(Integer.MAX_VALUE - val) == null) {
-                    cache.put(Integer.MAX_VALUE - val, new ArrayList<GameState>());
+                double alphaBetaVal;
+
+                alphaBetaVal = alphaBeta(newGameState, depth, alpha, beta, !myTurnToPlay, deadline);
+
+                if (alphaBetaVal > v) {
+                    v = alphaBetaVal;
                 }
-                cache.get(Integer.MAX_VALUE - val).add(newGameState);
-            }
-            
-            Iterator<Integer> it = cache.keySet().iterator();
-            
-            while (it.hasNext()) {
-                int itValue = it.next();
-                for (GameState newGameState : cache.get(itValue)) {
-                    double alphaBetaVal;
-                    if (valuesAlphaBeta.containsKey(newGameState.hashCode())) {
-                        alphaBetaVal = valuesAlphaBeta.get(newGameState.hashCode());
-                    } else {
-                        alphaBetaVal = alphaBeta(newGameState, depth, alpha, beta, !myTurnToPlay, deadline);
-                        valuesAlphaBeta.put(newGameState.hashCode(), alphaBetaVal);
-                    }
-                    if (alphaBetaVal > v) {
-                        v = alphaBetaVal;
-                    }
-                    
-                    if (v > alpha) {
-                        alpha = v;
-                    }
-                    
-                    if (beta <= alpha) {
-                        break;
-                    }
-                    
+
+                if (v > alpha) {
+                    alpha = v;
                 }
+
+                if (beta <= alpha) {
+                    break;
+                }
+
             }
         } else {
             v = Integer.MAX_VALUE;
-            // Ordering moves
-            HashMap<Integer, ArrayList<GameState>> cache = new HashMap<>();
             for (GameState newGameState : nextStates) {
-                int val = gama(newGameState, depth);
-                if (cache.get(val) == null) {
-                    cache.put(val, new ArrayList<GameState>());
-                }
-                cache.get(val).add(newGameState);
-            }
-            Iterator<Integer> it = cache.keySet().iterator();
-            while (it.hasNext()) {
-                int itValue = it.next();
-                for (GameState newGameState : cache.get(itValue)) {
-                    double alphaBetaVal;
-                    if (valuesAlphaBeta.containsKey(newGameState.hashCode())) {
-                        alphaBetaVal = valuesAlphaBeta.get(newGameState.hashCode());
-                    } else {
-                        alphaBetaVal = alphaBeta(newGameState, depth, alpha, beta, !myTurnToPlay, deadline);
-                        valuesAlphaBeta.put(newGameState.hashCode(), alphaBetaVal);
-                    }
-                    if (alphaBetaVal < v) {
-                        v = alphaBetaVal;
-                    }
+                double alphaBetaVal;
 
-                    if (v < beta) {
-                        beta = v;
-                    }
-                    
-                    if (beta <= alpha) {
-                        break;
-                    }
-                    
+                alphaBetaVal = alphaBeta(newGameState, depth, alpha, beta, !myTurnToPlay, deadline);
+
+                if (alphaBetaVal < v) {
+                    v = alphaBetaVal;
                 }
+
+                if (v < beta) {
+                    beta = v;
+                }
+
+                if (beta <= alpha) {
+                    break;
+                }
+
             }
-            
         }
+
         return v;
     }
-    
+
 }
